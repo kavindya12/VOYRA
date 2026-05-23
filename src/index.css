@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+@theme {
+  --color-voyra-sky: #eaf6ff;
+  --color-voyra-orange: #ff7a00;
+  --color-voyra-orange-hover: #e66d00;
+  --color-voyra-navy: #0f2942;
+  --color-voyra-muted: #5a6b7d;
+  --radius-voyra: 1.25rem;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --shadow-soft: 0 4px 24px rgba(15, 41, 66, 0.08);
+  --shadow-soft-lg: 0 12px 40px rgba(15, 41, 66, 0.12);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply m-0 font-sans text-voyra-navy antialiased bg-white;
+  }
+
+  #root {
+    @apply min-h-screen w-full;
+  }
+
+  ::selection {
+    @apply bg-voyra-orange/25 text-voyra-navy;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply min-h-[60vh] bg-gradient-to-b from-sky-50 via-voyra-sky/80 to-white;
+  }
+
+  .section-padding-sm {
+    @apply py-16 lg:py-20;
+  }
+
+  /* Vertical rhythm between stacked page sections */
+  .section-block {
+    @apply py-20 lg:py-28;
+  }
+
+  .section-block-separated {
+    @apply border-t border-voyra-sky/90;
+  }
+
+  .section-content-gap {
+    @apply mt-14 lg:mt-16;
+  }
+
+  .card-surface {
+    @apply rounded-[1.25rem] border border-voyra-sky/90 bg-white shadow-soft;
+  }
+
+  .card-glass {
+    @apply rounded-3xl border border-white/60 bg-white/85 shadow-soft-lg backdrop-blur-md;
+  }
+
+  .badge-label {
+    @apply inline-block rounded-full border border-voyra-orange/25 bg-white px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider text-voyra-orange shadow-sm;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-voyra-orange px-6 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-voyra-orange-hover hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-voyra-orange focus:ring-offset-2;
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 8px 28px rgba(255, 122, 0, 0.35);
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border-2 border-voyra-navy/12 bg-white px-6 py-3 text-sm font-semibold text-voyra-navy transition-all duration-300 hover:border-voyra-orange hover:text-voyra-orange focus:outline-none focus:ring-2 focus:ring-voyra-orange focus:ring-offset-2;
+  }
+
+  .btn-outline:hover {
+    box-shadow: 0 4px 24px rgba(15, 41, 66, 0.08);
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-1;
+  }
+
+  .card-hover:hover {
+    box-shadow: 0 12px 40px rgba(15, 41, 66, 0.12);
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-voyra-sky bg-white px-4 py-3 text-sm text-voyra-navy transition-colors placeholder:text-voyra-muted/70 focus:border-voyra-orange focus:outline-none focus:ring-2 focus:ring-voyra-orange/20;
+  }
+
+  .input-field-error {
+    @apply border-red-400 focus:border-red-400 focus:ring-red-200;
+  }
+
+  .text-link {
+    @apply text-sm font-semibold text-voyra-orange transition-colors hover:text-voyra-orange-hover;
+  }
+
+  .section-container {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+}
