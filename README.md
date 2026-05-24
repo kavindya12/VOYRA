@@ -79,6 +79,17 @@ See [docs/SHADCN_SETUP.md](docs/SHADCN_SETUP.md) for adding more shadcn componen
 
 **inquiries** - `name`, `email`, `phone`, `tour_name`, `date`, `people`, `message`, `created_at`
 
+## Deploy on Vercel
+
+1. Import the GitHub repo in [Vercel](https://vercel.com).
+2. Framework preset: **Vite** (or use the included `vercel.json`).
+3. **Environment variables** (Project → Settings → Environment Variables):
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+4. Deploy. If the page is blank or assets 404, use **Deployments → … → Redeploy → Clear build cache**.
+
+The site is a SPA: `vercel.json` serves static files from `dist/assets/` first, then falls back to `index.html` for routes like `/tours` and `/tour/kyoto-heritage`.
+
 ## Scripts
 
 | Command | Description |
@@ -86,3 +97,4 @@ See [docs/SHADCN_SETUP.md](docs/SHADCN_SETUP.md) for adding more shadcn componen
 | `npm run dev` | Start development server |
 | `npm run build` | Production build |
 | `npm run preview` | Preview production build |
+| `npm run upload:hero-videos` | Upload hero MP4s to Supabase Storage |
