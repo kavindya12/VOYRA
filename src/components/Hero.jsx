@@ -2,34 +2,57 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import InquiryLink from './InquiryLink'
 import { motion } from 'framer-motion'
-
-const HERO_VIDEOS = [
-  '/videos/hero-1.mp4',
-  '/videos/hero-2.mp4',
-  '/videos/hero-3.mp4',
-]
+import { useHeroVideos } from '../hooks/useHeroVideos'
 
 const ROTATE_MS = 8000
 
 export default function Hero() {
+  const { slides, loading } = useHeroVideos()
   const [activeIndex, setActiveIndex] = useState(0)
   const [failedVideos, setFailedVideos] = useState(() => new Set())
+  const [slideSrc, setSlideSrc] = useState([])
   const videoRefs = useRef([])
 
-  const playableIndices = HERO_VIDEOS.map((_, i) => i).filter((i) => !failedVideos.has(i))
+  useEffect(() => {
+    setSlideSrc(slides.map((s) => s.src))
+    setActiveIndex(0)
+    setFailedVideos(new Set())
+  }, [slides.map((s) => `${s.id}:${s.src}`).join('|')])
+
+  const handleVideoError = useCallback(
+    (index) => {
+      const slide = slides[index]
+      const fallback = slide?.fallback
+
+      if (fallback && slideSrc[index] !== fallback) {
+        setSlideSrc((prev) => {
+          const next = [...prev]
+          next[index] = fallback
+          return next
+        })
+        setFailedVideos((prev) => {
+          const next = new Set(prev)
+          next.delete(index)
+          return next
+        })
+        return
+      }
+
+      setFailedVideos((prev) => {
+        if (prev.has(index)) return prev
+        const next = new Set(prev)
+        next.add(index)
+        return next
+      })
+    },
+    [slides, slideSrc]
+  )
+
+  const playableIndices = slides.map((_, i) => i).filter((i) => !failedVideos.has(i))
 
   const safeActiveIndex = playableIndices.includes(activeIndex)
     ? activeIndex
     : playableIndices[0] ?? 0
-
-  const markFailed = useCallback((index) => {
-    setFailedVideos((prev) => {
-      if (prev.has(index)) return prev
-      const next = new Set(prev)
-      next.add(index)
-      return next
-    })
-  }, [])
 
   useEffect(() => {
     if (playableIndices.length === 0) return
@@ -51,44 +74,49 @@ export default function Hero() {
 
       if (index === safeActiveIndex) {
         video.currentTime = 0
-        video.play().catch(() => markFailed(index))
+        video.play().catch(() => handleVideoError(index))
       } else {
         video.pause()
       }
     })
-  }, [safeActiveIndex, failedVideos, markFailed])
+  }, [safeActiveIndex, failedVideos, handleVideoError, slideSrc])
+
+  const showVideos = !loading && slides.length > 0
 
   return (
     <section className="relative min-h-[85vh] overflow-hidden bg-voyra-navy">
       <div className="absolute inset-0">
-        {HERO_VIDEOS.map((src, index) => {
-          if (failedVideos.has(index)) return null
+        {showVideos &&
+          slides.map((slide, index) => {
+            if (failedVideos.has(index)) return null
 
-          return (
-            <video
-              key={src}
-              ref={(el) => {
-                videoRefs.current[index] = el
-              }}
-              src={src}
-              autoPlay={index === safeActiveIndex}
-              muted
-              playsInline
-              loop
-              preload={index === 0 ? 'auto' : 'metadata'}
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-                index === safeActiveIndex ? 'opacity-100' : 'opacity-0'
-              }`}
-              aria-hidden={index !== safeActiveIndex}
-              onError={() => markFailed(index)}
-              onCanPlay={(e) => {
-                if (index === safeActiveIndex) {
-                  e.currentTarget.play().catch(() => markFailed(index))
-                }
-              }}
-            />
-          )
-        })}
+            const src = slideSrc[index] ?? slide.src
+
+            return (
+              <video
+                key={`${slide.id}-${src}`}
+                ref={(el) => {
+                  videoRefs.current[index] = el
+                }}
+                src={src}
+                autoPlay={index === safeActiveIndex}
+                muted
+                playsInline
+                loop
+                preload={index === 0 ? 'auto' : 'metadata'}
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+                  index === safeActiveIndex ? 'opacity-100' : 'opacity-0'
+                }`}
+                aria-hidden={index !== safeActiveIndex}
+                onError={() => handleVideoError(index)}
+                onCanPlay={(e) => {
+                  if (index === safeActiveIndex) {
+                    e.currentTarget.play().catch(() => handleVideoError(index))
+                  }
+                }}
+              />
+            )
+          })}
         <div
           className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/20 to-black/45"
           aria-hidden
@@ -127,11 +155,11 @@ export default function Hero() {
 
             {playableIndices.length > 1 && (
               <div className="mt-10 flex justify-center gap-2">
-                {HERO_VIDEOS.map((_, index) => {
+                {slides.map((slide, index) => {
                   if (failedVideos.has(index)) return null
                   return (
                     <button
-                      key={index}
+                      key={slide.id}
                       type="button"
                       onClick={() => setActiveIndex(index)}
                       aria-label={`Show video ${index + 1}`}

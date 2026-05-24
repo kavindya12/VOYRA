@@ -42,6 +42,7 @@ Run these files **in order**:
 2. [`supabase/seed-full.sql`](../supabase/seed-full.sql) – inserts 6 tours with **all detail fields**
 3. [`supabase/seed-contact.sql`](../supabase/seed-contact.sql) – inserts contact email, phone, address, and social links
 4. [`supabase/seed-gallery.sql`](../supabase/seed-gallery.sql) – adds 5+ gallery images per tour for the detail page
+5. [`supabase/storage-hero-videos.sql`](../supabase/storage-hero-videos.sql) – public **`hero-videos`** bucket for homepage hero MP4s (see [Hero videos](#hero-videos-supabase-storage) below)
 
 ### Option B – You already have an old `tours` table
 
@@ -97,6 +98,36 @@ Click **Run** after each script. You should see “Success”.
 | `social_links` | jsonb | Follow Us icons (facebook, instagram, twitter) |
 
 Edit this row in **Table Editor** to update contact details site-wide.
+
+---
+
+## Hero videos (Supabase Storage)
+
+Large hero clips should live in **Storage**, not GitHub (100MB file limit). The homepage loads them automatically when Supabase is configured.
+
+### Setup
+
+1. Run [`supabase/storage-hero-videos.sql`](../supabase/storage-hero-videos.sql) (creates public bucket `hero-videos`).
+2. In Supabase → **Storage** → **hero-videos** → **Upload file**:
+   - `hero-1.mp4`
+   - `hero-2.mp4`
+   - `hero-3.mp4`
+3. Use **H.264** MP4 with **faststart** (see [`public/videos/README.md`](../public/videos/README.md)). Compress files over ~100MB before upload.
+4. Restart `npm run dev`.
+
+### How the app uses them
+
+- [`src/supabase/heroVideoService.js`](../src/supabase/heroVideoService.js) lists the bucket and builds public URLs.
+- [`src/components/Hero.jsx`](../src/components/Hero.jsx) plays those URLs in rotation.
+- If Storage is empty or fails, it falls back to `public/videos/*.mp4` on your machine.
+
+### Public URL format
+
+```text
+{VITE_SUPABASE_URL}/storage/v1/object/public/hero-videos/hero-1.mp4
+```
+
+Optional: set `VITE_HERO_VIDEOS` in `.env` to a comma-separated list of full video URLs (overrides Storage).
 
 ---
 
@@ -212,6 +243,7 @@ Open: `http://localhost:5173/tour/paris-romance`
 | Detail page empty / loading forever | Hard refresh; check `slug` matches URL |
 | “Tour not found” | Ensure row exists with that `slug` |
 | Inquiry submit fails | Check RLS policy on `inquiries` (insert allowed) |
+| Hero has no video | Run `storage-hero-videos.sql`, upload MP4s to bucket `hero-videos`, or add local files in `public/videos/` |
 
 ---
 
