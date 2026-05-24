@@ -5,6 +5,7 @@ export default function SectionHeader({
   title,
   description,
   align = 'center',
+  compact = false,
   className = '',
 }) {
   const isCenter = align === 'center'
@@ -17,19 +18,21 @@ export default function SectionHeader({
       transition={{ duration: 0.45 }}
       className={`${isCenter ? 'text-center' : 'text-left'} ${className}`}
     >
-      {badge && <span className="badge-label">{badge}</span>}
+      {badge && (
+        <span className={compact ? 'badge-label px-3 py-0.5 text-[10px]' : 'badge-label'}>{badge}</span>
+      )}
       <h2
         className={`font-extrabold tracking-tight text-voyra-navy ${
-          badge ? 'mt-3' : ''
-        } text-3xl sm:text-4xl`}
+          badge ? (compact ? 'mt-2' : 'mt-3') : ''
+        } ${compact ? 'text-2xl sm:text-3xl' : 'text-3xl sm:text-4xl'}`}
       >
         {title}
       </h2>
       {description && (
         <p
-          className={`mt-3 text-base leading-relaxed text-voyra-muted ${
-            isCenter ? 'mx-auto max-w-2xl' : 'max-w-xl'
-          }`}
+          className={`leading-relaxed text-voyra-muted ${
+            compact ? 'mt-1.5 text-sm' : 'mt-3 text-base'
+          } ${isCenter ? 'mx-auto max-w-2xl' : 'max-w-xl'}`}
         >
           {description}
         </p>

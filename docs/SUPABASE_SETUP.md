@@ -113,13 +113,26 @@ Large hero clips should live in **Storage**, not GitHub (100MB file limit). The 
    - `hero-2.mp4`
    - `hero-3.mp4`
 3. Use **H.264** MP4 with **faststart** (see [`public/videos/README.md`](../public/videos/README.md)). Compress files over ~100MB before upload.
-4. Restart `npm run dev`.
+4. Restart `npm run dev` (local) or hard-refresh your deployed site.
+
+### Why only one video on Vercel?
+
+The live deploy only includes **`hero-3.mp4`** in the build. **`hero-1.mp4`** and **`hero-2.mp4`** are gitignored (over GitHub’s 100MB limit), so they **do not exist** on Vercel unless you upload them to **Supabase Storage**.
+
+**Fix:** Upload `hero-1.mp4` and `hero-2.mp4` to the `hero-videos` bucket (H.264 format), or run from your PC:
+
+```bash
+npm run upload:hero-videos
+```
+
+(Add `SUPABASE_SERVICE_ROLE_KEY` to `.env` first — see `.env.example`.)
 
 ### How the app uses them
 
 - [`src/supabase/heroVideoService.js`](../src/supabase/heroVideoService.js) lists the bucket and builds public URLs.
 - [`src/components/Hero.jsx`](../src/components/Hero.jsx) plays those URLs in rotation.
-- If Storage is empty or fails, it falls back to `public/videos/*.mp4` on your machine.
+- **Local dev:** falls back to `public/videos/*.mp4` on your machine.
+- **Production:** only bundled `hero-3.mp4` + whatever is in Supabase Storage.
 
 ### Public URL format
 

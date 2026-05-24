@@ -7,9 +7,11 @@ import { submitInquiry } from '@/supabase/inquiryService'
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 const labelClass = 'mb-1 block text-sm font-medium text-voyra-navy'
+const labelClassCompact = 'mb-0.5 block text-xs font-medium text-voyra-navy'
 const inputClass = 'input-field mt-0 py-2.5'
+const inputClassCompact = 'input-field mt-0 py-2 text-sm'
 
-export default function InquiryFormHome() {
+export default function InquiryFormHome({ compact = false }) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
@@ -74,13 +76,18 @@ export default function InquiryFormHome() {
     }
   }
 
-  const fieldClass = (field) =>
-    cn(inputClass, errors[field] && 'border-red-400 bg-red-50')
+  const label = compact ? labelClassCompact : labelClass
+  const input = compact ? inputClassCompact : inputClass
+  const fieldClass = (field) => cn(input, errors[field] && 'border-red-400 bg-red-50')
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2" noValidate>
+    <form
+      onSubmit={handleSubmit}
+      className={`grid sm:grid-cols-2 ${compact ? 'gap-3' : 'gap-4'}`}
+      noValidate
+    >
         <div>
-            <label htmlFor="firstName" className={labelClass}>
+            <label htmlFor="firstName" className={label}>
               First name <span className="text-red-500">*</span>
             </label>
             <input
@@ -94,7 +101,7 @@ export default function InquiryFormHome() {
             {errors.firstName && <p className="mt-1 text-xs text-red-500">{errors.firstName}</p>}
           </div>
           <div>
-            <label htmlFor="lastName" className={labelClass}>
+            <label htmlFor="lastName" className={label}>
               Last name <span className="text-red-500">*</span>
             </label>
             <input
@@ -108,7 +115,7 @@ export default function InquiryFormHome() {
             {errors.lastName && <p className="mt-1 text-xs text-red-500">{errors.lastName}</p>}
           </div>
         <div>
-          <label htmlFor="email" className={labelClass}>
+          <label htmlFor="email" className={label}>
             Email <span className="text-red-500">*</span>
           </label>
           <input
@@ -123,7 +130,7 @@ export default function InquiryFormHome() {
         </div>
 
         <div>
-          <label htmlFor="phone" className={labelClass}>
+          <label htmlFor="phone" className={label}>
             Phone <span className="text-red-500">*</span>
           </label>
           <input
@@ -139,7 +146,7 @@ export default function InquiryFormHome() {
         </div>
 
         <div className="sm:col-span-2">
-          <label htmlFor="tourName" className={labelClass}>
+          <label htmlFor="tourName" className={label}>
             Tour or destination <span className="font-normal text-voyra-muted">(optional)</span>
           </label>
           <input
@@ -149,12 +156,12 @@ export default function InquiryFormHome() {
             placeholder="e.g. Bali Escape, Kyoto Heritage"
             value={form.tourName}
             onChange={handleChange}
-            className={inputClass}
+            className={input}
           />
         </div>
 
           <div>
-            <label htmlFor="date" className={labelClass}>
+            <label htmlFor="date" className={label}>
               Travel date <span className="text-red-500">*</span>
             </label>
             <input
@@ -169,7 +176,7 @@ export default function InquiryFormHome() {
             {errors.date && <p className="mt-1 text-xs text-red-500">{errors.date}</p>}
           </div>
           <div>
-            <label htmlFor="people" className={labelClass}>
+            <label htmlFor="people" className={label}>
               Travelers <span className="text-red-500">*</span>
             </label>
             <input
@@ -186,26 +193,31 @@ export default function InquiryFormHome() {
           </div>
 
         <div className="sm:col-span-2">
-          <label htmlFor="message" className={labelClass}>
+          <label htmlFor="message" className={label}>
             Message <span className="text-red-500">*</span>
           </label>
           <textarea
             id="message"
             name="message"
-            rows={3}
+            rows={compact ? 2 : 3}
             value={form.message}
             onChange={handleChange}
             placeholder="Tell us about your travel plans..."
-            className={cn(fieldClass('message'), 'min-h-[5.5rem] resize-none')}
+            className={cn(
+              fieldClass('message'),
+              compact ? 'min-h-[4rem] resize-none' : 'min-h-[5.5rem] resize-none'
+            )}
           />
           {errors.message && <p className="mt-1 text-xs text-red-500">{errors.message}</p>}
         </div>
 
-        <div className="sm:col-span-2">
+        <div className={`flex justify-center sm:col-span-2 ${compact ? 'pt-0.5' : 'pt-1'}`}>
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[200px]"
+            className={`btn-primary w-full max-w-xs disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:min-w-[200px] ${
+              compact ? 'px-6 py-2.5 text-sm' : ''
+            }`}
           >
             {loading ? 'Submitting...' : 'Submit Inquiry'}
           </button>

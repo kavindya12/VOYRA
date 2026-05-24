@@ -5,6 +5,9 @@ export const HERO_VIDEO_BUCKET = 'hero-videos'
 
 export const HERO_VIDEO_FILES = ['hero-1.mp4', 'hero-2.mp4', 'hero-3.mp4']
 
+/** Only this file is included in the Git/Vercel deploy (others are gitignored as too large) */
+const BUNDLED_HERO_VIDEOS = new Set(['hero-3.mp4'])
+
 const LOCAL_HERO_VIDEOS = HERO_VIDEO_FILES.map((name) => `/videos/${name}`)
 
 function parseEnvHeroVideos() {
@@ -20,14 +23,40 @@ export function getHeroVideoPublicUrl(fileName) {
   return data.publicUrl
 }
 
+function canServeLocalFile(fileName) {
+  return !import.meta.env.PROD || BUNDLED_HERO_VIDEOS.has(fileName)
+}
+
 function localSlide(name) {
   const local = `/videos/${name}`
   return { id: name, src: local, fallback: null }
 }
 
+async function listStorageHeroVideos() {
+  const available = new Set()
+
+  if (!isSupabaseConfigured || !supabase) return available
+
+  const { data: files, error } = await supabase.storage.from(HERO_VIDEO_BUCKET).list('', {
+    limit: 20,
+    sortBy: { column: 'name', order: 'asc' },
+  })
+
+  if (!error) {
+    for (const f of files ?? []) {
+      if (f.name && f.name.endsWith('.mp4') && !f.name.startsWith('.')) {
+        available.add(f.name)
+      }
+    }
+  }
+
+  return available
+}
+
 /**
- * Each slide: { id, src, fallback } — tries Supabase only when file exists in bucket;
- * otherwise local /videos/*. On playback error, Hero swaps to fallback.
+ * Each slide: { id, src, fallback }
+ * - Production (Vercel): hero-1/hero-2 must be in Supabase Storage (not in git).
+ * - Development: local public/videos/ works for all files.
  */
 export async function resolveHeroSlides() {
   const fromEnv = parseEnvHeroVideos()
@@ -35,33 +64,31 @@ export async function resolveHeroSlides() {
     return fromEnv.map((src, i) => ({ id: `env-${i}`, src, fallback: null }))
   }
 
-  let storageAvailable = new Set()
+  const storageAvailable = await listStorageHeroVideos()
 
-  if (isSupabaseConfigured && supabase) {
-    const { data: files, error } = await supabase.storage.from(HERO_VIDEO_BUCKET).list('', {
-      limit: 20,
-      sortBy: { column: 'name', order: 'asc' },
-    })
+  const slides = HERO_VIDEO_FILES.map((name) => {
+    const local = `/videos/${name}`
+    const storageUrl = getHeroVideoPublicUrl(name)
+    const inStorage = storageAvailable.has(name)
 
-    if (!error) {
-      for (const f of files ?? []) {
-        if (f.name && f.name.endsWith('.mp4') && !f.name.startsWith('.')) {
-          storageAvailable.add(f.name)
-        }
+    if (inStorage && storageUrl) {
+      return {
+        id: name,
+        src: storageUrl,
+        fallback: canServeLocalFile(name) ? local : null,
       }
     }
-  }
 
-  return HERO_VIDEO_FILES.map((name) => {
-    const local = `/videos/${name}`
-    const storage = storageAvailable.has(name) ? getHeroVideoPublicUrl(name) : null
-
-    if (storage) {
-      return { id: name, src: storage, fallback: local }
+    if (canServeLocalFile(name)) {
+      return { id: name, src: local, fallback: null }
     }
 
-    return { id: name, src: local, fallback: null }
-  })
+    return null
+  }).filter(Boolean)
+
+  if (slides.length > 0) return slides
+
+  return getLocalHeroSlides().filter((s) => canServeLocalFile(s.id))
 }
 
 /** @deprecated Use resolveHeroSlides */
