@@ -50,20 +50,14 @@ export default function TourDetails() {
           setTour(withDefaultRating(data))
           setNotFound(false)
         } else {
-          const demo = getDemoTourById(id)
-          if (demo) {
-            setTour(mergeWithDemoDetails(demo))
-            setNotFound(false)
-          } else {
-            setTour(null)
-            setNotFound(true)
-          }
+          setTour(null)
+          setNotFound(true)
         }
       } catch {
         if (!cancelled) {
           const demo = getDemoTourById(id)
           if (demo) {
-            setTour(mergeWithDemoDetails(demo))
+            setTour(withDefaultRating(mergeWithDemoDetails(demo)))
             setNotFound(false)
           } else {
             setTour(null)

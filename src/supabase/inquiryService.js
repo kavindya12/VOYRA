@@ -46,14 +46,19 @@ async function fetchTourRowByIdOrSlug(id) {
 
 export async function fetchTourById(id) {
   const tourId = normalizeTourId(id)
+  if (!tourId) {
+    return { data: null, error: new Error('Invalid tour id') }
+  }
 
   if (isSupabaseConfigured && supabase) {
     const { data, error } = await fetchTourRowByIdOrSlug(tourId)
     if (data) {
-      return { data: mapTourFromDb(data), error: null }
+      const mapped = mapTourFromDb(data)
+      return { data: mergeWithDemoDetails(mapped), error: null }
     }
+    // On Supabase errors (bad key, RLS, network), still try demo data so the site works
     if (error) {
-      return { data: null, error }
+      console.warn('[Voyra] fetchTourById:', error.message)
     }
   }
 
