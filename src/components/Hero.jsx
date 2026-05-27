@@ -22,9 +22,10 @@ export default function Hero() {
   const handleVideoError = useCallback(
     (index) => {
       const slide = slides[index]
+      const current = slideSrc[index] ?? slide?.src
       const fallback = slide?.fallback
 
-      if (fallback && slideSrc[index] !== fallback) {
+      if (fallback && current !== fallback) {
         setSlideSrc((prev) => {
           const next = [...prev]
           next[index] = fallback
@@ -33,6 +34,16 @@ export default function Hero() {
         setFailedVideos((prev) => {
           const next = new Set(prev)
           next.delete(index)
+          return next
+        })
+        return
+      }
+
+      // Retry original src once (transient CDN/storage errors)
+      if (slide?.src && current !== slide.src) {
+        setSlideSrc((prev) => {
+          const next = [...prev]
+          next[index] = slide.src
           return next
         })
         return

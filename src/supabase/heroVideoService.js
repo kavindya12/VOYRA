@@ -8,7 +8,18 @@ export const HERO_VIDEO_FILES = ['hero-1.mp4', 'hero-2.mp4', 'hero-3.mp4']
 /** Only this file is included in the Git/Vercel deploy (others are gitignored as too large) */
 const BUNDLED_HERO_VIDEOS = new Set(['hero-3.mp4'])
 
-const LOCAL_HERO_VIDEOS = HERO_VIDEO_FILES.map((name) => `/videos/${name}`)
+/**
+ * Reliable CDN fallbacks for production (Mixkit blocks hotlinking with 403).
+ * Override anytime by uploading your MP4s to Supabase Storage.
+ */
+const PRODUCTION_FALLBACK_SRC = {
+  'hero-1.mp4':
+    'https://cdn.coverr.co/videos/coverr-aerial-drone-shot-of-a-beautiful-coastline-5047/1080p.mp4',
+  'hero-2.mp4':
+    'https://cdn.coverr.co/videos/coverr-drone-footage-of-a-cascading-waterfall-4645/1080p.mp4',
+  'hero-3.mp4':
+    'https://cdn.coverr.co/videos/coverr-waves-coming-to-the-shore-1564/1080p.mp4',
+}
 
 function parseEnvHeroVideos() {
   const raw = import.meta.env.VITE_HERO_VIDEOS
@@ -27,9 +38,15 @@ function canServeLocalFile(fileName) {
   return !import.meta.env.PROD || BUNDLED_HERO_VIDEOS.has(fileName)
 }
 
+/** Respects Vite `base` (e.g. GitHub Pages /VOYRA/). */
+export function getLocalVideoPath(fileName) {
+  const base = import.meta.env.BASE_URL || '/'
+  const path = `${base}videos/${fileName}`.replace(/\/{2,}/g, '/')
+  return path.startsWith('/') ? path : `/${path}`
+}
+
 function localSlide(name) {
-  const local = `/videos/${name}`
-  return { id: name, src: local, fallback: null }
+  return { id: name, src: getLocalVideoPath(name), fallback: null }
 }
 
 async function listStorageHeroVideos() {
@@ -53,10 +70,64 @@ async function listStorageHeroVideos() {
   return available
 }
 
+async function storageFileExists(fileName, storageAvailable) {
+  if (storageAvailable.has(fileName)) return true
+
+  const url = getHeroVideoPublicUrl(fileName)
+  if (!url) return false
+
+  try {
+    const res = await fetch(url, { method: 'HEAD' })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+async function buildProductionSlide(name, storageAvailable) {
+  const local = canServeLocalFile(name) ? getLocalVideoPath(name) : null
+  const storageUrl = getHeroVideoPublicUrl(name)
+  const remote = PRODUCTION_FALLBACK_SRC[name] ?? null
+  const inStorage = await storageFileExists(name, storageAvailable)
+
+  if (inStorage && storageUrl) {
+    return {
+      id: name,
+      src: storageUrl,
+      fallback: local || remote,
+    }
+  }
+
+  if (local) {
+    return {
+      id: name,
+      src: local,
+      fallback: remote,
+    }
+  }
+
+  if (remote) {
+    return { id: name, src: remote, fallback: null }
+  }
+
+  return null
+}
+
+function buildDevelopmentSlide(name, storageAvailable) {
+  const local = getLocalVideoPath(name)
+  const storageUrl = getHeroVideoPublicUrl(name)
+  const inStorage = storageAvailable.has(name)
+
+  if (inStorage && storageUrl) {
+    return { id: name, src: storageUrl, fallback: local }
+  }
+
+  return { id: name, src: local, fallback: storageUrl }
+}
+
 /**
  * Each slide: { id, src, fallback }
- * - Production (Vercel): hero-1/hero-2 must be in Supabase Storage (not in git).
- * - Development: local public/videos/ works for all files.
+ * Production always returns 3 slides (bundled hero-3 + Coverr CDN for hero-1/2 until Storage upload).
  */
 export async function resolveHeroSlides() {
   const fromEnv = parseEnvHeroVideos()
@@ -65,30 +136,16 @@ export async function resolveHeroSlides() {
   }
 
   const storageAvailable = await listStorageHeroVideos()
+  const isProd = import.meta.env.PROD
 
-  const slides = HERO_VIDEO_FILES.map((name) => {
-    const local = `/videos/${name}`
-    const storageUrl = getHeroVideoPublicUrl(name)
-    const inStorage = storageAvailable.has(name)
+  if (isProd) {
+    const slides = await Promise.all(
+      HERO_VIDEO_FILES.map((name) => buildProductionSlide(name, storageAvailable))
+    )
+    return slides.filter(Boolean)
+  }
 
-    if (inStorage && storageUrl) {
-      return {
-        id: name,
-        src: storageUrl,
-        fallback: canServeLocalFile(name) ? local : null,
-      }
-    }
-
-    if (canServeLocalFile(name)) {
-      return { id: name, src: local, fallback: null }
-    }
-
-    return null
-  }).filter(Boolean)
-
-  if (slides.length > 0) return slides
-
-  return getLocalHeroSlides().filter((s) => canServeLocalFile(s.id))
+  return HERO_VIDEO_FILES.map((name) => buildDevelopmentSlide(name, storageAvailable))
 }
 
 /** @deprecated Use resolveHeroSlides */
@@ -99,4 +156,17 @@ export async function resolveHeroVideoUrls() {
 
 export function getLocalHeroSlides() {
   return HERO_VIDEO_FILES.map((name) => localSlide(name))
+}
+
+/** Production-safe slides when async resolve fails */
+export function getProductionHeroSlides() {
+  return HERO_VIDEO_FILES.map((name) => {
+    const local = canServeLocalFile(name) ? getLocalVideoPath(name) : null
+    const remote = PRODUCTION_FALLBACK_SRC[name]
+    return {
+      id: name,
+      src: local || remote,
+      fallback: local && remote ? remote : null,
+    }
+  }).filter((s) => s.src)
 }

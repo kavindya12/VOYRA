@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
-import { getLocalHeroSlides, resolveHeroSlides } from '../supabase/heroVideoService'
+import {
+  getLocalHeroSlides,
+  getProductionHeroSlides,
+  resolveHeroSlides,
+} from '../supabase/heroVideoService'
+
+function defaultSlides() {
+  return import.meta.env.PROD ? getProductionHeroSlides() : getLocalHeroSlides()
+}
 
 export function useHeroVideos() {
-  const [slides, setSlides] = useState([])
+  const [slides, setSlides] = useState(() => (import.meta.env.PROD ? getProductionHeroSlides() : []))
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -11,13 +19,13 @@ export function useHeroVideos() {
     resolveHeroSlides()
       .then((resolved) => {
         if (!cancelled) {
-          setSlides(resolved.length ? resolved : getLocalHeroSlides())
+          setSlides(resolved.length >= 3 ? resolved : defaultSlides())
           setLoading(false)
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setSlides(getLocalHeroSlides())
+          setSlides(defaultSlides())
           setLoading(false)
         }
       })
